@@ -1,121 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 function App() {
-  const [count, setCount] = useState(0)
+  // Lista do banco
+  const [usuarios, setUsuarios] = useState([])
+  const [erro, setErro] = useState(null)
+
+  // Função que busca do Django
+  const carregarUsuarios = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/usuarios/')
+      setUsuarios(response.data) // Guarda os dados recebidos
+    } catch (err) {
+      setErro("Não foi possível conectar ao backend. Verifique o CORS!")
+      console.error(err)
+    }
+  }
+
+  // useEffect faz a função rodar quando a página abre
+  useEffect(() => {
+    carregarUsuarios()
+  }, [])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ padding: '40px', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' }}>
+      <h1 style={{ color: '#2c3e50' }}>🎮 Sistema de Gerenciamento - A3</h1>
+      <hr />
 
-      <div className="ticks"></div>
+      {/* Exibição de Erro, se houver */}
+      {erro && <p style={{ color: 'red', fontWeight: 'bold' }}>{erro}</p>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <h2>Lista de Usuários (Vindo do Oracle)</h2>
+      
+      {/* Mostra a lista na tela */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {usuarios.length > 0 ? (
+          usuarios.map((user) => (
+            <div key={user.id} style={{ 
+              padding: '15px', 
+              border: '1px solid #ddd', 
+              borderRadius: '8px',
+              backgroundColor: '#f9f9f9'
+            }}>
+              <strong>Usuário:</strong> {user.username} <br />
+              <small>E-mail: {user.email}</small>
+            </div>
+          ))
+        ) : (
+          <p>Nenhum usuário encontrado ou carregando...</p>
+        )}
+      </div>
+    </div>
   )
 }
 
