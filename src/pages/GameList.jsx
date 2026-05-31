@@ -7,6 +7,7 @@ function GameList() {
     useEffect(() => {
         api.get("/jogos/game/")
             .then((response) => {
+                console.log(response.data);
                 setGames(response.data);
             })
             .catch((error) => {
@@ -21,7 +22,7 @@ function GameList() {
             <ul>
                 {games.map((game) => (
                     <li key={game.id}>
-                        {game.name}
+                        {game.title}
                     </li>
                 ))}
             </ul>
