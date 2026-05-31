@@ -19,13 +19,29 @@ function GameList() {
         <div>
             <h1>Biblioteca de Jogos Antigos</h1>
 
-            <ul>
+            <div>
                 {games.map((game) => (
-                    <li key={game.id}>
-                        {game.title}
-                    </li>
-                ))}
-            </ul>
+                    <div key={game.id}>
+                      <h2>{game.title}</h2>
+
+                       <p>{game.description}</p>
+
+                       <p>
+                            Ano: {game.release_year}
+                      </p>
+
+                       <p>
+                           Nota: {game.average_rating}
+                       </p>
+
+                       <img
+                          src={game.cover_image}
+                         alt={game.title}
+                         width="200"
+                     />
+                 </div>
+               ))}
+            </div>
         </div>
     );
 }
