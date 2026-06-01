@@ -12,6 +12,7 @@ import GameList from "./pages/GameList";
 import DeveloperList from "./pages/DeveloperList";
 import GenreList from "./pages/GenreList";
 import ConsoleList from "./pages/ConsoleList";
+import TagList from "./pages/TagList";
 
 function App() {
     return (
@@ -25,6 +26,7 @@ function App() {
                 <Route path="/developers" element={<DeveloperList />} />
                 <Route path="/genres" element={<GenreList />} />
                 <Route path="/consoles" element={<ConsoleList />} />
+                <Route path="/tags" element={<TagList />} />
                 <Route path="/login" element={<Login />} />
             </Routes>
 
