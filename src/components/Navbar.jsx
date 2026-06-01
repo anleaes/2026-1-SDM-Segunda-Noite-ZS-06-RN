@@ -7,6 +7,7 @@ function Navbar() {
             <Link to="/games">Jogos</Link> |{" "}
             <Link to="/developers">Desenvolvedoras</Link> | {" "}
             <Link to="/genres">Gêneros</Link> | {" "}
+            <Link to="/consoles">Consoles</Link> | {" "}
             <Link to="/login">Login</Link>
         </nav>
     );
