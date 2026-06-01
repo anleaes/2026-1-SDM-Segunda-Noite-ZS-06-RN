@@ -11,8 +11,12 @@ import Login from "./pages/Login";
 
 function App() {
     return (
-        <GameList />
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/games" element={<GameList />} />
+                <Route path="/login" element={<Login />} />
+            </Routes>
+        </BrowserRouter>
     );
 }
-
-export default App;
