@@ -5,7 +5,7 @@ function GameList() {
     const [games, setGames] = useState([]);
 
     useEffect(() => {
-        api.get("/jogos/game/")
+        api.get("/jogos")
             .then((response) => {
                 console.log(response.data);
                 setGames(response.data);
