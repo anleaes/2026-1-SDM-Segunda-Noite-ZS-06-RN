@@ -1,114 +1,86 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  StyleSheet,
-  ScrollView
-} from "react-native";
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import api from '../services/api';
 
-import api from "../services/api";
-
-interface Game {
-  id: number;
-  title: string;
-  description: string;
-  release_year: number;
-  average_rating: number;
-  cover_image: string;
-}
-
-const GamesScreen = () => {
-  const [games, setGames] = useState<Game[]>([]);
+export default function GamesScreen() {
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/jogos")
+    api.get('/jogos/') 
       .then((response) => {
-        console.log(response.data);
         setGames(response.data);
+        setLoading(false);
       })
       .catch((error) => {
-        console.error("Erro ao carregar jogos:", error);
+        console.error("Erro ao buscar jogos:", error);
+        setLoading(false);
       });
   }, []);
 
+  if (loading) {
+    return <ActivityIndicator size="large" style={styles.loader} />;
+  }
+
   return (
     <View style={styles.container}>
-
-      <Text style={styles.title}>
-        Biblioteca de Jogos Antigos
-      </Text>
-
       <FlatList
         data={games}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.card}>
-
-            <Text style={styles.gameTitle}>
-              {item.title}
-            </Text>
-
-            <Text>
-              {item.description}
-            </Text>
-
-            <Text>
-              Ano: {item.release_year}
-            </Text>
-
-            <Text>
-              Nota: {item.average_rating}
-            </Text>
-
             {item.cover_image ? (
-              <Image
-                source={{
-                  uri: item.cover_image
-                }}
-                style={styles.image}
-              />
-            ) : null}
-
+              <Image source={{ uri: item.cover_image }} style={styles.coverImage} />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Text style={styles.placeholderText}>Sem Capa</Text>
+              </View>
+            )}
+            
+            <View style={styles.infoContainer}>
+              <Text style={styles.gameName}>{item.title}</Text>
+              <Text style={styles.gameYear}>Ano: {item.release_year}</Text>
+              {item.average_rating && (
+                <Text style={styles.gameRating}>Nota: {item.average_rating}</Text>
+              )}
+            </View>
           </View>
         )}
       />
-
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 15
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 15
-  },
-
-  card: {
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: 8
-  },
-
-  gameTitle: {
-    fontSize: 18,
-    fontWeight: "bold"
-  },
-
-  image: {
-    width: 200,
-    height: 300,
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  card: { 
+    flexDirection: 'row', 
+    padding: 15, 
+    marginHorizontal: 10,
     marginTop: 10,
-    resizeMode: "cover"
-  }
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 2, 
+  },
+  coverImage: { 
+    width: 60, 
+    height: 80, 
+    borderRadius: 4, 
+    marginRight: 15 
+  },
+  placeholderImage: {
+    width: 60,
+    height: 80,
+    borderRadius: 4,
+    marginRight: 15,
+    backgroundColor: '#ddd',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: { fontSize: 10, color: '#666' },
+  infoContainer: { flex: 1, justifyContent: 'center' },
+  gameName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  gameYear: { fontSize: 14, color: '#666', marginTop: 4 },
+  gameRating: { fontSize: 14, color: '#007BFF', marginTop: 4, fontWeight: '600' }
 });
-
-export default GamesScreen;
