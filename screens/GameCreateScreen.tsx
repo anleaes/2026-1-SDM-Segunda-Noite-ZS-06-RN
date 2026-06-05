@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Text, TextInput, StyleSheet, ScrollView, View, TouchableOpacity, Image, Alert } from 'react-native';
+import { Text, TextInput, StyleSheet, ScrollView, View, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
-import api from '../src/services/api';
 import { useNavigation } from '@react-navigation/native';
+import api from '../src/services/api'; // Ajuste o caminho se necessário
 
+// --- INTERFACES DO TYPESCRIPT ---
 interface Developer {
   id: number;
   name: string;
@@ -21,14 +22,16 @@ interface ConsoleItem {
 }
 
 export default function GameCreateScreen() {
-  // 1. Estados Básicos do Jogo
+  const navigation = useNavigation();
+
+  // --- ESTADOS BÁSICOS ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [releaseYear, setReleaseYear] = useState("");
   const [averageRating, setAverageRating] = useState("");
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // 2. Estados das Listas (Pickers) e Seleções Atuais
+  // --- ESTADOS DAS LISTAS ---
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [consoles, setConsoles] = useState<ConsoleItem[]>([]);
@@ -37,30 +40,29 @@ export default function GameCreateScreen() {
   const [genre, setGenre] = useState("");
   const [consoleId, setConsoleId] = useState("");
 
-  // 3. Estados para os Novos Cadastros (Exibição dos Formulários)
+  // --- ESTADOS DOS FORMULÁRIOS DINÂMICOS ---
   const [showDevForm, setShowDevForm] = useState(false);
   const [showGenreForm, setShowGenreForm] = useState(false);
   const [showConsoleForm, setShowConsoleForm] = useState(false);
 
-  // Estados dos inputs de Nova Desenvolvedora
   const [newDevName, setNewDevName] = useState("");
   const [newDevCountry, setNewDevCountry] = useState("");
   const [newDevYear, setNewDevYear] = useState("");
   const [newDevDesc, setNewDevDesc] = useState("");
 
-  // Estados dos inputs de Novo Gênero
   const [newGenreName, setNewGenreName] = useState("");
   const [newGenreDesc, setNewGenreDesc] = useState("");
 
-  // Estados dos inputs de Novo Console
   const [newConsoleName, setNewConsoleName] = useState("");
 
+  // --- BUSCA INICIAL NO BANCO ---
   useEffect(() => {
     api.get("/developer/").then((response) => setDevelopers(response.data)).catch(console.error);
     api.get("/genre/").then((response) => setGenres(response.data)).catch(console.error);
     api.get("/console/").then((response) => setConsoles(response.data)).catch(console.error);
   }, []);
 
+  // --- FUNÇÕES ---
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -74,8 +76,6 @@ export default function GameCreateScreen() {
     }
   };
 
-  // --- FUNÇÕES DE CRIAÇÃO DINÂMICA ---
-
   const createDeveloper = async () => {
     try {
       const response = await api.post("/developer/", {
@@ -86,9 +86,8 @@ export default function GameCreateScreen() {
       });
       const createdDev = response.data;
       setDevelopers([...developers, createdDev]);
-      setDeveloper(createdDev.id); // Já seleciona a nova dev no Picker
+      setDeveloper(createdDev.id);
       setShowDevForm(false);
-      // Limpa os campos
       setNewDevName(""); setNewDevCountry(""); setNewDevYear(""); setNewDevDesc("");
       Alert.alert("Sucesso", "Desenvolvedora criada!");
     } catch (error) {
@@ -132,42 +131,43 @@ export default function GameCreateScreen() {
     }
   };
 
-
-
-    const navigation = useNavigation();
-
   const handleSubmit = async () => {
-    // 1. Validação básica
     if (!title || !developer || !genre || !consoleId) {
       Alert.alert("Atenção", "Preencha o título, desenvolvedora, gênero e console!");
       return;
     }
 
-    // 2. Montando os dados
     const formData = new FormData();
+    
     formData.append("title", title);
     formData.append("description", description);
     formData.append("release_year", releaseYear);
-    formData.append("average_rating", averageRating);
     formData.append("developer", developer);
     formData.append("genre", genre);
-    // No seu código Vite era "consoles", então mantemos o plural se for assim no backend:
     formData.append("consoles", consoleId); 
 
-    // 3. Tratamento da Imagem para o Mobile/Expo
-    if (coverImage) {
-      const filename = coverImage.split('/').pop() || 'capa.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-      formData.append("cover_image", {
-        uri: coverImage,
-        name: filename,
-        type: type,
-      } as any); // "as any" evita erros de tipagem com o FormData nativo
+    if (averageRating !== "") {
+      formData.append("average_rating", averageRating);
     }
 
-    // 4. Envio para o Backend
+    if (coverImage) {
+      if (Platform.OS === 'web') {
+        const response = await fetch(coverImage);
+        const blob = await response.blob();
+        formData.append("cover_image", blob, "capa.jpg");
+      } else {
+        const filename = coverImage.split('/').pop() || 'capa.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append("cover_image", {
+          uri: coverImage,
+          name: filename,
+          type: type,
+        } as any);
+      }
+    }
+
     try {
       await api.post("/jogos/", formData, {
         headers: {
@@ -177,21 +177,21 @@ export default function GameCreateScreen() {
 
       Alert.alert("Sucesso!", "Jogo cadastrado na biblioteca!");
       
-      // Limpa os campos da tela
       setTitle(""); setDescription(""); setReleaseYear(""); setAverageRating("");
       setDeveloper(""); setGenre(""); setConsoleId(""); setCoverImage(null);
       
-      // Redireciona para a tela inicial
       navigation.navigate("Games" as never);
 
     } catch (error: any) {
-      console.error("Erro ao salvar jogo:", error);
-      Alert.alert("Erro", "Não foi possível salvar o jogo. Verifique o console.");
+      console.error("Erro geral:", error);
+      if (error.response && error.response.data) {
+        console.error("Motivo exato da recusa do Django:", error.response.data);
+      }
+      Alert.alert("Erro", "O Django recusou os dados. Verifique o console (F12).");
     }
   };
 
-
-
+  // --- RENDERIZAÇÃO DA TELA ---
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Novo Jogo</Text>
@@ -214,7 +214,7 @@ export default function GameCreateScreen() {
       </TouchableOpacity>
       {coverImage && <Image source={{ uri: coverImage }} style={styles.previewImage} />}
 
-      {/* --- SEÇÃO: DESENVOLVEDORA --- */}
+      {/* SEÇÃO: DESENVOLVEDORA */}
       <Text style={styles.label}>Desenvolvedora</Text>
       <View style={styles.pickerContainer}>
         <Picker selectedValue={developer} onValueChange={setDeveloper}>
@@ -238,7 +238,7 @@ export default function GameCreateScreen() {
         </View>
       )}
 
-      {/* --- SEÇÃO: GÊNERO --- */}
+      {/* SEÇÃO: GÊNERO */}
       <Text style={styles.label}>Gênero</Text>
       <View style={styles.pickerContainer}>
         <Picker selectedValue={genre} onValueChange={setGenre}>
@@ -260,7 +260,7 @@ export default function GameCreateScreen() {
         </View>
       )}
 
-      {/* --- SEÇÃO: CONSOLE --- */}
+      {/* SEÇÃO: CONSOLE */}
       <Text style={styles.label}>Console</Text>
       <View style={styles.pickerContainer}>
         <Picker selectedValue={consoleId} onValueChange={setConsoleId}>
@@ -281,7 +281,6 @@ export default function GameCreateScreen() {
         </View>
       )}
 
-      {/* --- BOTÃO FINAL --- */}
       <TouchableOpacity style={styles.mainSubmitButton} onPress={handleSubmit}>
         <Text style={styles.mainSubmitText}>Salvar Novo Jogo</Text>
       </TouchableOpacity>
@@ -290,6 +289,7 @@ export default function GameCreateScreen() {
   );
 }
 
+// --- ESTILOS VISUAIS ---
 const styles = StyleSheet.create({
   container: { padding: 20, backgroundColor: '#fff', flexGrow: 1, paddingBottom: 50 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
@@ -301,12 +301,12 @@ const styles = StyleSheet.create({
   imageButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   previewImage: { width: 100, height: 140, borderRadius: 8, marginTop: 15, alignSelf: 'center' },
   
-  // Estilos dos Formulários Dinâmicos
   newLink: { color: '#007BFF', marginTop: 8, fontWeight: 'bold', fontSize: 14, alignSelf: 'flex-end' },
   dynamicForm: { backgroundColor: '#f0f4ff', padding: 15, borderRadius: 8, marginTop: 10, borderWidth: 1, borderColor: '#d0dcf2' },
   inputDynamic: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
   saveDynamicButton: { backgroundColor: '#28a745', padding: 10, borderRadius: 6, alignItems: 'center' },
   saveDynamicText: { color: '#fff', fontWeight: 'bold' },
+
   mainSubmitButton: { backgroundColor: '#007BFF', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 30, marginBottom: 20 },
   mainSubmitText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
