@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
-import api from '../services/api';
+import api from '../src/services/api';
+
+interface Game {
+  id: number;
+  title: string;
+  release_year: number;
+  cover_image: string | null;
+  average_rating: string | null;
+}
 
 export default function GamesScreen() {
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
