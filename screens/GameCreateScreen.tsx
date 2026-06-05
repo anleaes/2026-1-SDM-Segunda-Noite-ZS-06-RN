@@ -54,6 +54,8 @@ export default function GameCreateScreen() {
   const [newGenreDesc, setNewGenreDesc] = useState("");
 
   const [newConsoleName, setNewConsoleName] = useState("");
+  const [newConsoleManufacturer, setNewConsoleManufacturer] = useState("");
+  const [newConsoleYear, setNewConsoleYear] = useState("");
 
   // --- BUSCA INICIAL NO BANCO ---
   useEffect(() => {
@@ -118,15 +120,25 @@ export default function GameCreateScreen() {
     try {
       const response = await api.post("/console/", {
         name: newConsoleName,
+        manufacturer: newConsoleManufacturer,
+        release_year: Number(newConsoleYear)
       });
       const createdConsole = response.data;
       setConsoles([...consoles, createdConsole]);
       setConsoleId(createdConsole.id);
       setShowConsoleForm(false);
+      
+      // Limpa os campos após salvar
       setNewConsoleName("");
+      setNewConsoleManufacturer("");
+      setNewConsoleYear("");
+      
       Alert.alert("Sucesso", "Console criado!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.response && error.response.data) {
+        console.error("Erro do Django:", error.response.data);
+      }
       Alert.alert("Erro", "Falha ao criar console.");
     }
   };
@@ -275,6 +287,9 @@ export default function GameCreateScreen() {
       {showConsoleForm && (
         <View style={styles.dynamicForm}>
           <TextInput style={styles.inputDynamic} placeholder="Nome do Console" value={newConsoleName} onChangeText={setNewConsoleName} />
+          <TextInput style={styles.inputDynamic} placeholder="Fabricante" value={newConsoleManufacturer} onChangeText={setNewConsoleManufacturer} />
+          <TextInput style={styles.inputDynamic} placeholder="Ano de Lançamento" value={newConsoleYear} onChangeText={setNewConsoleYear} keyboardType="numeric" />
+          
           <TouchableOpacity style={styles.saveDynamicButton} onPress={createConsole}>
             <Text style={styles.saveDynamicText}>Salvar Console</Text>
           </TouchableOpacity>
