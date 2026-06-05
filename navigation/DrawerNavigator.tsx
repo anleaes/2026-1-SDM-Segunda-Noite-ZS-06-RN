@@ -1,9 +1,11 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import React from 'react';
 import GamesScreen from '../screens/GamesScreen';
+import GameCreateScreen from '../screens/GameCreateScreen';
 
 export type DrawerParamList = {
   Games: undefined;
+  GameCreate: undefined;
 };
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -22,6 +24,13 @@ const DrawerNavigator = () => {
         component={GamesScreen}
         options={{
           title: 'Biblioteca de Jogos',
+        }}
+      />
+      <Drawer.Screen
+        name="GameCreate"
+        component={GameCreateScreen}
+        options={{
+          title: 'Novo Jogo',
         }}
       />
     </Drawer.Navigator>  
