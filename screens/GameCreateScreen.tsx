@@ -3,6 +3,7 @@ import { Text, TextInput, StyleSheet, ScrollView, View, TouchableOpacity, Image,
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../src/services/api';
+import { useNavigation } from '@react-navigation/native';
 
 interface Developer {
   id: number;
@@ -131,6 +132,66 @@ export default function GameCreateScreen() {
     }
   };
 
+
+
+    const navigation = useNavigation();
+
+  const handleSubmit = async () => {
+    // 1. Validação básica
+    if (!title || !developer || !genre || !consoleId) {
+      Alert.alert("Atenção", "Preencha o título, desenvolvedora, gênero e console!");
+      return;
+    }
+
+    // 2. Montando os dados
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("release_year", releaseYear);
+    formData.append("average_rating", averageRating);
+    formData.append("developer", developer);
+    formData.append("genre", genre);
+    // No seu código Vite era "consoles", então mantemos o plural se for assim no backend:
+    formData.append("consoles", consoleId); 
+
+    // 3. Tratamento da Imagem para o Mobile/Expo
+    if (coverImage) {
+      const filename = coverImage.split('/').pop() || 'capa.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append("cover_image", {
+        uri: coverImage,
+        name: filename,
+        type: type,
+      } as any); // "as any" evita erros de tipagem com o FormData nativo
+    }
+
+    // 4. Envio para o Backend
+    try {
+      await api.post("/jogos/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      Alert.alert("Sucesso!", "Jogo cadastrado na biblioteca!");
+      
+      // Limpa os campos da tela
+      setTitle(""); setDescription(""); setReleaseYear(""); setAverageRating("");
+      setDeveloper(""); setGenre(""); setConsoleId(""); setCoverImage(null);
+      
+      // Redireciona para a tela inicial
+      navigation.navigate("Games" as never);
+
+    } catch (error: any) {
+      console.error("Erro ao salvar jogo:", error);
+      Alert.alert("Erro", "Não foi possível salvar o jogo. Verifique o console.");
+    }
+  };
+
+
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Novo Jogo</Text>
@@ -220,8 +281,10 @@ export default function GameCreateScreen() {
         </View>
       )}
 
-      {/* O botão principal de Salvar Jogo entrará aqui no próximo passo */}
-      <View style={{ height: 40 }} /> 
+      {/* --- BOTÃO FINAL --- */}
+      <TouchableOpacity style={styles.mainSubmitButton} onPress={handleSubmit}>
+        <Text style={styles.mainSubmitText}>Salvar Novo Jogo</Text>
+      </TouchableOpacity>
 
     </ScrollView>
   );
@@ -243,5 +306,7 @@ const styles = StyleSheet.create({
   dynamicForm: { backgroundColor: '#f0f4ff', padding: 15, borderRadius: 8, marginTop: 10, borderWidth: 1, borderColor: '#d0dcf2' },
   inputDynamic: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
   saveDynamicButton: { backgroundColor: '#28a745', padding: 10, borderRadius: 6, alignItems: 'center' },
-  saveDynamicText: { color: '#fff', fontWeight: 'bold' }
+  saveDynamicText: { color: '#fff', fontWeight: 'bold' },
+  mainSubmitButton: { backgroundColor: '#007BFF', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 30, marginBottom: 20 },
+  mainSubmitText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
