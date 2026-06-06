@@ -4,12 +4,14 @@ import GamesScreen from '../screens/GamesScreen';
 import GameCreateScreen from '../screens/GameCreateScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 export type DrawerParamList = {
   Games: undefined;
   GameCreate: undefined;
   Login: undefined;
   Register: undefined;
+  Profile: undefined;
 };
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -47,6 +49,11 @@ const DrawerNavigator = () => {
         component={RegisterScreen} 
         options={{ title: 'Criar Conta' }} 
       />
+      <Drawer.Screen 
+      name="Profile" 
+      component={ProfileScreen} 
+      options={{ title: 'Meu Perfil' }} 
+    />
     </Drawer.Navigator>  
   );
 };
