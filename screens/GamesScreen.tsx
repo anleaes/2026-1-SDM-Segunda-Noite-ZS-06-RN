@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../src/services/api';
 
 interface Game {
@@ -14,17 +15,21 @@ export default function GamesScreen() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get('/jogos/') 
-      .then((response) => {
-        setGames(response.data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Erro ao buscar jogos:", error);
-        setLoading(false);
-      });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true); // Ativa a rodinha de carregamento para dar feedback visual
+      
+      api.get('/jogos/')
+        .then((response) => {
+          setGames(response.data);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Erro ao buscar jogos:", error);
+          setLoading(false);
+        });
+    }, [])
+  );
 
   if (loading) {
     return <ActivityIndicator size="large" style={styles.loader} />;
