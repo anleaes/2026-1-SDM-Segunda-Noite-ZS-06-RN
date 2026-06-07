@@ -39,7 +39,6 @@ export default function GameDetailsScreen() {
 
   const carregarReviews = async () => {
     try {
-      // Busca apenas as reviews DESSES jogo específico
       const response = await api.get(`/review/?game=${gameId}`);
       setReviews(response.data);
     } catch (error) {
@@ -47,7 +46,46 @@ export default function GameDetailsScreen() {
     }
   };
 
-  // Função para enviar a Review para o Django
+// --- FUNÇÃO ATUALIZADA: Máscara Inteligente para a Nota ---
+  const handleNotaChange = (texto: string) => {
+    // 1. Troca vírgula por ponto
+    let valorLimpo = texto.replace(',', '.');
+    
+    // 2. Remove tudo que não for número ou ponto
+    valorLimpo = valorLimpo.replace(/[^0-9.]/g, '');
+    
+    // 3. Garante que só tenha UM ponto decimal
+    const partes = valorLimpo.split('.');
+    if (partes.length > 2) {
+      valorLimpo = partes[0] + '.' + partes.slice(1).join('');
+    }
+
+    // 4. A Mágica do "28 -> 2.8":
+    // Se o usuário digitar 2 números sem ponto (ex: "28", "11", "05")
+    if (!valorLimpo.includes('.') && valorLimpo.length === 2) {
+      // Se for maior que 10 (ex: 28) ou começar com 0 (ex: 05), coloca o ponto no meio.
+      // Se for exatamente "10", ele deixa passar normalmente.
+      if (parseInt(valorLimpo) > 10 || valorLimpo.startsWith('0')) {
+        valorLimpo = `${valorLimpo[0]}.${valorLimpo[1]}`;
+      }
+    }
+
+    // 5. Limita a apenas uma casa decimal (ex: impede "2.85")
+    if (valorLimpo.includes('.')) {
+      const [inteiro, decimal] = valorLimpo.split('.');
+      if (decimal.length > 1) {
+        valorLimpo = `${inteiro}.${decimal.substring(0, 1)}`;
+      }
+    }
+
+    // 6. Trava no 10 se a pessoa tentar burlar digitando algo como "10.5"
+    if (parseFloat(valorLimpo) > 10) {
+      valorLimpo = '10';
+    }
+
+    setMinhaNota(valorLimpo);
+  };
+
   const handleEnviarReview = async () => {
     if (!meuComentario.trim() || !minhaNota) {
       Alert.alert("Atenção", "Preencha a nota e o comentário para avaliar.");
@@ -56,7 +94,7 @@ export default function GameDetailsScreen() {
 
     const notaNum = parseFloat(minhaNota);
     if (isNaN(notaNum) || notaNum < 0 || notaNum > 10) {
-      Alert.alert("Atenção", "A nota deve ser um número entre 0 e 10.");
+      Alert.alert("Atenção", "A nota deve ser um número válido entre 0 e 10.");
       return;
     }
 
@@ -72,10 +110,9 @@ export default function GameDetailsScreen() {
       setMeuComentario("");
       setMinhaNota("");
       
-      // Recarrega a lista para mostrar a nova review na hora
       carregarReviews();
-    } catch (error) {
-      console.error("Erro ao salvar review:", error);
+    } catch (error: any) {
+      console.error("Motivo do Erro 400:", error.response?.data);
       Alert.alert("Erro", "Não foi possível enviar a avaliação.");
     }
   };
@@ -141,11 +178,9 @@ export default function GameDetailsScreen() {
         
       </View>
 
-      {/* --- SEÇÃO DE REVIEWS --- */}
       <View style={styles.reviewsSection}>
         <Text style={styles.sectionTitle}>Avaliações da Comunidade</Text>
         
-        {/* Caixa para Escrever Review */}
         <View style={styles.writeReviewBox}>
           <Text style={styles.writeReviewTitle}>Escreva sua análise</Text>
           
@@ -157,7 +192,7 @@ export default function GameDetailsScreen() {
                 keyboardType="numeric" 
                 maxLength={4}
                 value={minhaNota}
-                onChangeText={setMinhaNota}
+                onChangeText={handleNotaChange} // <-- Conectado à máscara
                 placeholder="Ex: 8.5"
                 placeholderTextColor="#666"
               />
@@ -185,7 +220,6 @@ export default function GameDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Lista de Reviews Publicadas */}
         {reviews.length === 0 ? (
           <Text style={styles.noReviewsText}>Nenhuma avaliação ainda. Seja o primeiro a avaliar!</Text>
         ) : (
@@ -239,7 +273,6 @@ const styles = StyleSheet.create({
   detailLabel: { color: '#8f98a0', fontWeight: 'bold' },
   placeholderText: { color: '#8f98a0', fontWeight: 'bold', textAlign: 'center' },
 
-  // --- ESTILOS DAS REVIEWS ---
   reviewsSection: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#2a475e', paddingTop: 20 },
   sectionTitle: { fontSize: 22, fontWeight: 'bold', color: '#ffffff', marginBottom: 15, textTransform: 'uppercase' },
   
