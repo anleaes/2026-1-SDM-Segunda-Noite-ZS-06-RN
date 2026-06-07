@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native'; // <-- Adicionado TouchableOpacity
+import { useFocusEffect, useNavigation } from '@react-navigation/native'; // <-- Adicionado useNavigation
 import api from '../src/services/api';
 
 interface Game {
@@ -14,10 +14,13 @@ interface Game {
 export default function GamesScreen() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // <-- Inicializando a navegação (usamos <any> para o TypeScript não reclamar das rotas)
+  const navigation = useNavigation<any>(); 
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true); // Ativa a rodinha de carregamento para dar feedback visual
+      setLoading(true); 
       
       api.get('/jogos/')
         .then((response) => {
@@ -41,7 +44,12 @@ export default function GamesScreen() {
         data={games}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          
+          // <-- Mudamos de View para TouchableOpacity e adicionamos o onPress
+          <TouchableOpacity 
+            style={styles.card}
+            onPress={() => navigation.navigate("GameDetails", { gameId: item.id })}
+          >
             {item.cover_image ? (
               <Image source={{ uri: item.cover_image }} style={styles.coverImage} />
             ) : (
@@ -57,7 +65,8 @@ export default function GamesScreen() {
                 <Text style={styles.gameRating}>Nota: {item.average_rating}</Text>
               )}
             </View>
-          </View>
+          </TouchableOpacity>
+
         )}
       />
     </View>
