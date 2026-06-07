@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, useWindowDimensions, TextInput, Alert, Platform } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { MaterialIcons } from '@expo/vector-icons'; // <-- Importação do Ícone
 import api from '../src/services/api';
-
 
 export default function GameDetailsScreen() {
   const route = useRoute();
@@ -24,7 +24,8 @@ export default function GameDetailsScreen() {
 
   // Estados do Carrossel
   const [screenshots, setScreenshots] = useState<any[]>([]);
-  const [imagemDestaque, setImagemDestaque] = useState<string | null>(null);
+  // Atualizado: agora guarda o objeto inteiro da foto, não apenas o link
+  const [fotoDestaque, setFotoDestaque] = useState<any>(null);
 
   useEffect(() => {
     carregarDetalhes();
@@ -57,12 +58,10 @@ export default function GameDetailsScreen() {
     try {
       const response = await api.get(`/jogos/screenshot/?game=${gameId}`);
       setScreenshots(response.data);
-      // Se tiver fotos, coloca a primeira como destaque na tela grande
       if (response.data.length > 0) {
-        setImagemDestaque(response.data[0].image);
+        setFotoDestaque(response.data[0]); // Guarda o objeto inteiro
       } else {
-        // A CORREÇÃO: Limpa a "foto fantasma" se o jogo atual não tiver galeria
-        setImagemDestaque(null); 
+        setFotoDestaque(null); 
       }
     } catch (error) {
       console.error("Erro ao carregar fotos:", error);
@@ -79,10 +78,8 @@ export default function GameDetailsScreen() {
     if (!result.canceled) {
       const localUri = result.assets[0].uri;
       
-      // 1. Pegamos o nome do arquivo da URL
       let filename = localUri.split('/').pop() || 'screenshot.jpg';
       
-      // 2. A CORREÇÃO: Se não tiver extensão (comum na Web), nós forçamos o .jpg!
       if (!filename.includes('.')) {
         filename = `${filename}.jpg`;
       }
@@ -114,6 +111,36 @@ export default function GameDetailsScreen() {
         Alert.alert("Erro", "Não foi possível enviar a imagem.");
       }
     }
+  };
+
+  // --- NOVA FUNÇÃO: Apagar Foto ---
+  const handleApagarFoto = () => {
+    if (!fotoDestaque) return;
+
+    Alert.alert(
+      "Apagar Foto",
+      "Tem certeza que deseja remover esta imagem do carrossel?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Apagar", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await api.delete(`/jogos/screenshot/${fotoDestaque.id}/`);
+              Alert.alert("Sucesso", "Foto removida.");
+              carregarScreenshots(); 
+            } catch (error: any) {
+              if (error.response?.status === 403) {
+                Alert.alert("Acesso Negado", "Você só pode apagar fotos dos jogos que você mesmo cadastrou.");
+              } else {
+                Alert.alert("Erro", "Não foi possível apagar a foto.");
+              }
+            }
+          } 
+        }
+      ]
+    );
   };
 
   // --- LÓGICA DE REVIEWS ---
@@ -189,13 +216,18 @@ export default function GameDetailsScreen() {
       
       <View style={[styles.mainRow, !isLargeScreen && styles.mainRowMobile]}>
         
-        {/* --- LADO ESQUERDO: NOVO CARROSSEL --- */}
+        {/* --- LADO ESQUERDO: CARROSSEL --- */}
         <View style={[styles.carouselColumn, isLargeScreen && { flex: 2 }]}>
           
-          {/* Imagem Destaque */}
+          {/* Imagem Destaque com o Ícone de Lixeira */}
           <View style={styles.mainImageContainer}>
-            {imagemDestaque ? (
-              <Image source={{ uri: imagemDestaque }} style={styles.mainImage} resizeMode="contain" />
+            {fotoDestaque ? (
+              <>
+                <Image source={{ uri: fotoDestaque.image }} style={styles.mainImage} resizeMode="contain" />
+                <TouchableOpacity style={styles.deleteButton} onPress={handleApagarFoto}>
+                  <MaterialIcons name="delete" size={24} color="#ff4444" />
+                </TouchableOpacity>
+              </>
             ) : (
               <View style={styles.mainImagePlaceholder}>
                 <Text style={styles.placeholderText}>Nenhuma imagem cadastrada na galeria</Text>
@@ -208,15 +240,14 @@ export default function GameDetailsScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnailScroll}>
               
               {screenshots.map((shot) => (
-                <TouchableOpacity key={shot.id} onPress={() => setImagemDestaque(shot.image)}>
+                <TouchableOpacity key={shot.id} onPress={() => setFotoDestaque(shot)}>
                   <Image 
                     source={{ uri: shot.image }} 
-                    style={[styles.thumbnail, imagemDestaque === shot.image && styles.thumbnailActive]} 
+                    style={[styles.thumbnail, fotoDestaque?.id === shot.id && styles.thumbnailActive]} 
                   />
                 </TouchableOpacity>
               ))}
               
-              {/* O botão fica sempre no final da lista */}
               <TouchableOpacity style={styles.addPhotoButton} onPress={handleAdicionarFoto}>
                 <Text style={styles.addPhotoText}>+ Adicionar Foto</Text>
               </TouchableOpacity>
@@ -316,6 +347,16 @@ const styles = StyleSheet.create({
   
   addPhotoButton: { width: 120, height: 68, backgroundColor: 'rgba(102, 192, 244, 0.1)', borderWidth: 1, borderColor: '#66c0f4', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', borderRadius: 4 },
   addPhotoText: { color: '#66c0f4', fontWeight: 'bold', fontSize: 13 },
+
+  // Estilo novo para o botão de apagar
+  deleteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 20,
+  },
   // -----------------------------
   
   infoColumn: { display: 'flex', flexDirection: 'column', gap: 10 },
