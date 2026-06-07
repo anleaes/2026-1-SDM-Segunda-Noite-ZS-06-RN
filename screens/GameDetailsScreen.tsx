@@ -40,7 +40,7 @@ export default function GameDetailsScreen() {
   const carregarReviews = async () => {
     try {
       // Busca apenas as reviews DESSES jogo específico
-      const response = await api.get('/review/?game=${gameId}');
+      const response = await api.get(`/review/?game=${gameId}`);
       setReviews(response.data);
     } catch (error) {
       console.error("Erro ao carregar reviews:", error);
