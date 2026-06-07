@@ -3,11 +3,13 @@ import React from 'react';
 import GamesScreen from '../screens/GamesScreen';
 import GameCreateScreen from '../screens/GameCreateScreen';
 import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 
 export type DrawerParamList = {
   Games: undefined;
   GameCreate: undefined;
   Login: undefined;
+  Register: undefined;
 };
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -39,6 +41,11 @@ const DrawerNavigator = () => {
         name="Login"
         component={LoginScreen}
         options={{ title: 'Fazer Login' }}
+      />
+      <Drawer.Screen 
+        name="Register" 
+        component={RegisterScreen} 
+        options={{ title: 'Criar Conta' }} 
       />
     </Drawer.Navigator>  
   );
