@@ -75,26 +75,33 @@ export default function GameDetailsScreen() {
 
     if (!result.canceled) {
       const localUri = result.assets[0].uri;
-      const filename = localUri.split('/').pop() || 'screenshot.jpg';
       
-      const photo = {
-        uri: localUri,
-        type: 'image/jpeg',
-        name: filename,
-      };
-
+      // 1. Pegamos o nome do arquivo da URL
+      let filename = localUri.split('/').pop() || 'screenshot.jpg';
+      
+      // 2. A CORREÇÃO: Se não tiver extensão (comum na Web), nós forçamos o .jpg!
+      if (!filename.includes('.')) {
+        filename = `${filename}.jpg`;
+      }
+      
       const formData = new FormData();
       formData.append('game', String(gameId));
-      formData.append('image', photo as any);
+
+      if (Platform.OS === 'web') {
+        const response = await fetch(localUri);
+        const blob = await response.blob();
+        formData.append('image', blob, filename);
+      } else {
+        formData.append('image', {
+          uri: localUri,
+          type: 'image/jpeg',
+          name: filename,
+        } as any);
+      }
 
       try {
         await api.post('/jogos/screenshot/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json',
-          },
-          // A MÁGICA ESTÁ AQUI: Isso impede o Axios de destruir o seu arquivo
-          transformRequest: () => formData, 
+          headers: { 'Content-Type': 'multipart/form-data' }
         }); 
         
         Alert.alert("Sucesso", "Foto adicionada!");
