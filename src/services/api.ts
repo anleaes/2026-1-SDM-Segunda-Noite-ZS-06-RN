@@ -1,27 +1,34 @@
 import axios from "axios";
 import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-    baseURL: "http://localhost:8000",
-    withCredentials: true,
-
-    //xsrfCookieName: 'csrftoken',
-    //xsrfHeaderName: 'X-CSRFToken',
+  baseURL: "http://localhost:8000",
+  withCredentials: true,
 });
 
+// Interceptor: Roda ANTES de qualquer requisição sair do app
+api.interceptors.request.use(async (config) => {
+  
+  // 1. Pega o Token do cofre do celular
+  const token = await AsyncStorage.getItem('userToken');
+  
+  // 2. Se o Token existir, carimba ele no cabeçalho de autorização padrão do Django
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
+  }
 
-// Interceptor: Ele intercepta a requisição antes de sair e injeta o token à força.
-api.interceptors.request.use((config) => {
-  // O Platform.OS garante que isso só rode no navegador, evitando erros no celular
+  // 3. Mantém a regra do CSRF para quando rodar no navegador
   if (Platform.OS === 'web') {
     const match = document.cookie.match(new RegExp('(^| )csrftoken=([^;]+)'));
     if (match) {
-      // Injeta o cabeçalho exato que o Django exige
       config.headers['X-CSRFToken'] = match[2];
     }
   }
+  
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
-
 
 export default api;
