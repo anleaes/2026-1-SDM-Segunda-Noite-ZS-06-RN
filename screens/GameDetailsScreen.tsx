@@ -60,6 +60,9 @@ export default function GameDetailsScreen() {
       // Se tiver fotos, coloca a primeira como destaque na tela grande
       if (response.data.length > 0) {
         setImagemDestaque(response.data[0].image);
+      } else {
+        // A CORREÇÃO: Limpa a "foto fantasma" se o jogo atual não tiver galeria
+        setImagemDestaque(null); 
       }
     } catch (error) {
       console.error("Erro ao carregar fotos:", error);
