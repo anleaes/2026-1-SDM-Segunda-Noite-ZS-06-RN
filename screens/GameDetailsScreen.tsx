@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, useWindowDimensions, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, useWindowDimensions, TextInput, Alert, Platform } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../src/services/api';
+
 
 export default function GameDetailsScreen() {
   const route = useRoute();
@@ -76,20 +77,25 @@ export default function GameDetailsScreen() {
       const localUri = result.assets[0].uri;
       const filename = localUri.split('/').pop() || 'screenshot.jpg';
       
-      // Criação do objeto de arquivo para o FormData
       const photo = {
         uri: localUri,
-        type: 'image/jpeg', // Forçamos o tipo para evitar erro de codificação
+        type: 'image/jpeg',
         name: filename,
       };
 
       const formData = new FormData();
       formData.append('game', String(gameId));
-      formData.append('image', photo as any); // Adicionamos o objeto preparado
+      formData.append('image', photo as any);
 
       try {
-        // Agora, remova o objeto de headers { headers: ... } da chamada abaixo:
-        await api.post('/jogos/screenshot/', formData); 
+        await api.post('/jogos/screenshot/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+          // A MÁGICA ESTÁ AQUI: Isso impede o Axios de destruir o seu arquivo
+          transformRequest: () => formData, 
+        }); 
         
         Alert.alert("Sucesso", "Foto adicionada!");
         carregarScreenshots();
