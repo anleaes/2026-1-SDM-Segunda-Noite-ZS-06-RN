@@ -274,7 +274,7 @@ export default function GameDetailsScreen() {
             <Text style={styles.detailRow}><Text style={styles.detailLabel}>Nota Média:</Text> {game.average_rating ? game.average_rating : 'Sem avaliações'}</Text>
             <Text style={styles.detailRow}><Text style={styles.detailLabel}>Desenvolvedora:</Text> {game.developer ? game.developer.name : 'Não informado'}</Text>
             <Text style={styles.detailRow}><Text style={styles.detailLabel}>Gêneros:</Text> {renderList(game.genre)}</Text>
-            <Text style={styles.detailRow}><Text style={styles.detailLabel}>Consoles:</Text> {renderList(game.console)}</Text>
+            <Text style={styles.detailRow}><Text style={styles.detailLabel}>Consoles:</Text> {renderList(game.consoles)}</Text>
           </View>
         </View>
         
