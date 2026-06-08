@@ -80,9 +80,12 @@ export default function GameDetailsScreen() {
 
   const carregarTodasAsTags = async () => {
     try {
-      const response = await api.get(`/tag/`);
+      // A CORREÇÃO: Atualizamos o link para o novo endereço
+      const response = await api.get(`/tag/categoria/`);
       setTodasAsTags(response.data);
-    } catch (error) { console.error("Erro ao carregar tags base:", error); }
+    } catch (error) { 
+      console.error("Erro ao carregar tags base:", error); 
+    }
   };
 
   const handleAddGameTag = async () => {
