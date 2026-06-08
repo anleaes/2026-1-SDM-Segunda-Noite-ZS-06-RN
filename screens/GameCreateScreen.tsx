@@ -19,14 +19,16 @@ export default function GameCreateScreen() {
   const [averageRating, setAverageRating] = useState("");
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // --- ESTADOS DAS LISTAS ---
+  // --- ESTADOS DAS LISTAS (Vêm do Banco) ---
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [consoles, setConsoles] = useState<ConsoleItem[]>([]);
 
+  // --- ESTADOS DE SELEÇÃO DO USUÁRIO ---
   const [developer, setDeveloper] = useState("");
-  const [genre, setGenre] = useState("");
-  const [consoleId, setConsoleId] = useState("");
+  // ATUALIZADO: Agora são listas para guardar múltiplos IDs
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedConsoles, setSelectedConsoles] = useState<number[]>([]);
 
   // --- ESTADOS DOS FORMULÁRIOS DINÂMICOS ---
   const [showDevForm, setShowDevForm] = useState(false);
@@ -61,29 +63,33 @@ export default function GameCreateScreen() {
     if (!result.canceled) setCoverImage(result.assets[0].uri);
   };
 
+  // --- LÓGICA DE SELEÇÃO MÚLTIPLA ---
+  const toggleGenre = (id: number) => {
+    setSelectedGenres((prev) => 
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleConsole = (id: number) => {
+    setSelectedConsoles((prev) => 
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
   // --- LÓGICA DE FORMATAÇÃO E VALIDAÇÃO ---
   const handleYearChange = (text: string) => {
-    // Permite apenas números
     const numericValue = text.replace(/[^0-9]/g, '');
     setReleaseYear(numericValue);
   };
 
   const handleRatingChange = (text: string) => {
-    // Remove tudo que não for número
     let cleaned = text.replace(/[^0-9]/g, '');
-    
-    if (cleaned === '') {
-      setAverageRating('');
-      return;
-    }
-
+    if (cleaned === '') { setAverageRating(''); return; }
     let num = parseInt(cleaned, 10);
-    if (num > 100) num = 100; // Trava o máximo em 10.0 (100)
-
+    if (num > 100) num = 100; 
     if (num === 100) {
       setAverageRating('10.0');
     } else if (cleaned.length >= 2) {
-      // Ex: digitou 85 -> vira 8.5
       let firstPart = cleaned.substring(0, cleaned.length - 1);
       let lastPart = cleaned.substring(cleaned.length - 1);
       setAverageRating(`${firstPart}.${lastPart}`);
@@ -122,7 +128,8 @@ export default function GameCreateScreen() {
       const response = await api.post("/genre/", { name: newGenreName, description: newGenreDesc });
       const createdGenre = response.data;
       setGenres([...genres, createdGenre]);
-      setGenre(createdGenre.id);
+      // Já adiciona o novo gênero na lista de selecionados!
+      setSelectedGenres(prev => [...prev, createdGenre.id]);
       setShowGenreForm(false);
       setNewGenreName(""); setNewGenreDesc("");
       Alert.alert("Sucesso", "Gênero criado!");
@@ -136,7 +143,8 @@ export default function GameCreateScreen() {
       const response = await api.post("/console/", { name: newConsoleName, manufacturer: newConsoleManufacturer, release_year: Number(newConsoleYear) });
       const createdConsole = response.data;
       setConsoles([...consoles, createdConsole]);
-      setConsoleId(createdConsole.id);
+      // Já adiciona o novo console na lista de selecionados!
+      setSelectedConsoles(prev => [...prev, createdConsole.id]);
       setShowConsoleForm(false);
       setNewConsoleName(""); setNewConsoleManufacturer(""); setNewConsoleYear("");
       Alert.alert("Sucesso", "Console criado!");
@@ -146,13 +154,12 @@ export default function GameCreateScreen() {
   };
 
   const handleSubmit = async () => {
-    // Validação de preenchimento
-    if (!title || !developer || !genre || !consoleId) {
-      Alert.alert("Atenção", "Preencha o título, desenvolvedora, gênero e console!");
+    // ATUALIZADO: Valida se as listas têm pelo menos 1 item
+    if (!title || !developer || selectedGenres.length === 0 || selectedConsoles.length === 0) {
+      Alert.alert("Atenção", "Preencha o título, desenvolvedora, ao menos um gênero e um console!");
       return;
     }
 
-    // Validação de Ano Sensato
     if (releaseYear) {
       const yearNum = parseInt(releaseYear, 10);
       const currentYear = new Date().getFullYear();
@@ -167,10 +174,11 @@ export default function GameCreateScreen() {
     formData.append("description", description);
     formData.append("release_year", releaseYear);
     formData.append("developer", developer);
-    formData.append("genre", genre);
-    formData.append("consoles", consoleId); 
+    
+    // ATUALIZADO: Envia todos os gêneros e consoles selecionados para o Django
+    selectedGenres.forEach(id => formData.append("genre", String(id)));
+    selectedConsoles.forEach(id => formData.append("consoles", String(id)));
 
-    // Formatação do zero absoluto
     let finalRating = averageRating;
     if (finalRating === "0" || finalRating === "0.") finalRating = "0.0";
     if (finalRating !== "") formData.append("average_rating", finalRating);
@@ -193,7 +201,7 @@ export default function GameCreateScreen() {
       Alert.alert("Sucesso!", "Jogo cadastrado na biblioteca!");
       
       setTitle(""); setDescription(""); setReleaseYear(""); setAverageRating("");
-      setDeveloper(""); setGenre(""); setConsoleId(""); setCoverImage(null);
+      setDeveloper(""); setSelectedGenres([]); setSelectedConsoles([]); setCoverImage(null);
       
       navigation.navigate("Games" as never);
     } catch (error: any) {
@@ -213,38 +221,17 @@ export default function GameCreateScreen() {
       <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} multiline={true} numberOfLines={4} />
 
       <Text style={styles.label}>Ano de Lançamento</Text>
-      <TextInput 
-        style={styles.input} 
-        value={releaseYear} 
-        onChangeText={handleYearChange} 
-        keyboardType="numeric" 
-        maxLength={4} // Trava em 4 dígitos
-      />
+      <TextInput style={styles.input} value={releaseYear} onChangeText={handleYearChange} keyboardType="numeric" maxLength={4} />
 
       <Text style={styles.label}>Avaliação</Text>
       <View style={styles.ratingContainer}>
-        <TouchableOpacity style={styles.ratingButton} onPress={decrementRating}>
-          <Text style={styles.ratingButtonText}>-</Text>
-        </TouchableOpacity>
-        
-        <TextInput 
-          style={styles.ratingInput} 
-          value={averageRating} 
-          onChangeText={handleRatingChange} 
-          keyboardType="numeric" 
-          maxLength={4}
-          placeholder="0.0"
-        />
-        
-        <TouchableOpacity style={styles.ratingButton} onPress={incrementRating}>
-          <Text style={styles.ratingButtonText}>+</Text>
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.ratingButton} onPress={decrementRating}><Text style={styles.ratingButtonText}>-</Text></TouchableOpacity>
+        <TextInput style={styles.ratingInput} value={averageRating} onChangeText={handleRatingChange} keyboardType="numeric" maxLength={4} placeholder="0.0" />
+        <TouchableOpacity style={styles.ratingButton} onPress={incrementRating}><Text style={styles.ratingButtonText}>+</Text></TouchableOpacity>
       </View>
 
       <Text style={styles.label}>Capa do Jogo</Text>
-      <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-        <Text style={styles.imageButtonText}>Escolher Imagem</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.imageButton} onPress={pickImage}><Text style={styles.imageButtonText}>Escolher Imagem</Text></TouchableOpacity>
       {coverImage && <Image source={{ uri: coverImage }} style={styles.previewImage} />}
 
       {/* SEÇÃO: DESENVOLVEDORA */}
@@ -255,9 +242,7 @@ export default function GameCreateScreen() {
           {developers.map((dev: any) => (<Picker.Item key={dev.id} label={dev.name} value={dev.id} />))}
         </Picker>
       </View>
-      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowDevForm(!showDevForm)}>
-        <Text style={styles.newLink}>+ Nova Desenvolvedora</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowDevForm(!showDevForm)}><Text style={styles.newLink}>+ Nova Desenvolvedora</Text></TouchableOpacity>
       
       {showDevForm && (
         <View style={styles.dynamicForm}>
@@ -265,54 +250,60 @@ export default function GameCreateScreen() {
           <TextInput style={styles.inputDynamic} placeholder="País" value={newDevCountry} onChangeText={setNewDevCountry} />
           <TextInput style={styles.inputDynamic} placeholder="Ano de Fundação" value={newDevYear} onChangeText={setNewDevYear} keyboardType="numeric" />
           <TextInput style={styles.inputDynamic} placeholder="Descrição" value={newDevDesc} onChangeText={setNewDevDesc} />
-          <TouchableOpacity style={styles.saveDynamicButton} onPress={createDeveloper}>
-            <Text style={styles.saveDynamicText}>Salvar Desenvolvedora</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveDynamicButton} onPress={createDeveloper}><Text style={styles.saveDynamicText}>Salvar Desenvolvedora</Text></TouchableOpacity>
         </View>
       )}
 
-      {/* SEÇÃO: GÊNERO */}
-      <Text style={styles.label}>Gênero</Text>
-      <View style={styles.pickerContainer}>
-        <Picker selectedValue={genre} onValueChange={setGenre}>
-          <Picker.Item label="Selecione um gênero" value="" />
-          {genres.map((gen: any) => (<Picker.Item key={gen.id} label={gen.name} value={gen.id} />))}
-        </Picker>
+      {/* SEÇÃO: GÊNEROS (CHIPS MULTI-SELEÇÃO) */}
+      <Text style={styles.label}>Gêneros</Text>
+      <View style={styles.chipsContainer}>
+        {genres.map((gen) => {
+          const isSelected = selectedGenres.includes(gen.id);
+          return (
+            <TouchableOpacity 
+              key={gen.id} 
+              style={[styles.chip, isSelected && styles.chipSelected]} 
+              onPress={() => toggleGenre(gen.id)}
+            >
+              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{gen.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowGenreForm(!showGenreForm)}>
-        <Text style={styles.newLink}>+ Novo Gênero</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowGenreForm(!showGenreForm)}><Text style={styles.newLink}>+ Novo Gênero</Text></TouchableOpacity>
 
       {showGenreForm && (
         <View style={styles.dynamicForm}>
           <TextInput style={styles.inputDynamic} placeholder="Nome do Gênero" value={newGenreName} onChangeText={setNewGenreName} />
           <TextInput style={styles.inputDynamic} placeholder="Descrição" value={newGenreDesc} onChangeText={setNewGenreDesc} />
-          <TouchableOpacity style={styles.saveDynamicButton} onPress={createGenre}>
-            <Text style={styles.saveDynamicText}>Salvar Gênero</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveDynamicButton} onPress={createGenre}><Text style={styles.saveDynamicText}>Salvar Gênero</Text></TouchableOpacity>
         </View>
       )}
 
-      {/* SEÇÃO: CONSOLE */}
-      <Text style={styles.label}>Console</Text>
-      <View style={styles.pickerContainer}>
-        <Picker selectedValue={consoleId} onValueChange={setConsoleId}>
-          <Picker.Item label="Selecione um console" value="" />
-          {consoles.map((con: any) => (<Picker.Item key={con.id} label={con.name} value={con.id} />))}
-        </Picker>
+      {/* SEÇÃO: CONSOLES (CHIPS MULTI-SELEÇÃO) */}
+      <Text style={styles.label}>Consoles</Text>
+      <View style={styles.chipsContainer}>
+        {consoles.map((con) => {
+          const isSelected = selectedConsoles.includes(con.id);
+          return (
+            <TouchableOpacity 
+              key={con.id} 
+              style={[styles.chip, isSelected && styles.chipSelected]} 
+              onPress={() => toggleConsole(con.id)}
+            >
+              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{con.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowConsoleForm(!showConsoleForm)}>
-        <Text style={styles.newLink}>+ Novo Console</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.newLinkContainer} onPress={() => setShowConsoleForm(!showConsoleForm)}><Text style={styles.newLink}>+ Novo Console</Text></TouchableOpacity>
 
       {showConsoleForm && (
         <View style={styles.dynamicForm}>
           <TextInput style={styles.inputDynamic} placeholder="Nome do Console" value={newConsoleName} onChangeText={setNewConsoleName} />
           <TextInput style={styles.inputDynamic} placeholder="Fabricante" value={newConsoleManufacturer} onChangeText={setNewConsoleManufacturer} />
           <TextInput style={styles.inputDynamic} placeholder="Ano de Lançamento" value={newConsoleYear} onChangeText={setNewConsoleYear} keyboardType="numeric" />
-          <TouchableOpacity style={styles.saveDynamicButton} onPress={createConsole}>
-            <Text style={styles.saveDynamicText}>Salvar Console</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveDynamicButton} onPress={createConsole}><Text style={styles.saveDynamicText}>Salvar Console</Text></TouchableOpacity>
         </View>
       )}
 
@@ -336,13 +327,18 @@ const styles = StyleSheet.create({
   imageButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   previewImage: { width: 100, height: 140, borderRadius: 8, marginTop: 15, alignSelf: 'center' },
   
-  // Estilos da Avaliação
   ratingContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
   ratingButton: { backgroundColor: '#4B7BE5', width: 45, height: 45, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   ratingButtonText: { color: '#fff', fontSize: 24, fontWeight: 'bold', lineHeight: 28 },
   ratingInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 18, backgroundColor: '#f9f9f9', flex: 1, marginHorizontal: 10, textAlign: 'center' },
 
-  // Estilos dos Formulários Dinâmicos
+  // --- NOVOS ESTILOS PARA OS CHIPS DE SELEÇÃO ---
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 5 },
+  chip: { backgroundColor: '#f0f4ff', borderWidth: 1, borderColor: '#ccc', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 15 },
+  chipSelected: { backgroundColor: '#4B7BE5', borderColor: '#4B7BE5' },
+  chipText: { color: '#333', fontSize: 14, fontWeight: '500' },
+  chipTextSelected: { color: '#fff', fontWeight: 'bold' },
+
   newLinkContainer: { alignSelf: 'flex-end', marginTop: 8, paddingVertical: 5 },
   newLink: { color: '#007BFF', fontWeight: 'bold', fontSize: 14 },
   dynamicForm: { backgroundColor: '#f0f4ff', padding: 15, borderRadius: 8, marginTop: 10, borderWidth: 1, borderColor: '#d0dcf2' },
