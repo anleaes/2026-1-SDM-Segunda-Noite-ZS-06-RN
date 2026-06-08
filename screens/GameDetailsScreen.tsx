@@ -80,7 +80,6 @@ export default function GameDetailsScreen() {
 
   const carregarTodasAsTags = async () => {
     try {
-      // A CORREÇÃO: Atualizamos o link para o novo endereço
       const response = await api.get(`/tag/categoria/`);
       setTodasAsTags(response.data);
     } catch (error) { 
@@ -212,8 +211,10 @@ export default function GameDetailsScreen() {
       
       <View style={[styles.mainRow, !isLargeScreen && styles.mainRowMobile]}>
         
-        {/* LADO ESQUERDO: CARROSSEL */}
+        {/* --- LADO ESQUERDO: CARROSSEL + TAGS JUNTOS --- */}
         <View style={[styles.carouselColumn, isLargeScreen && { flex: 2 }]}>
+          
+          {/* Carrossel: Imagem Principal */}
           <View style={styles.mainImageContainer}>
             {fotoDestaque ? (
               <>
@@ -227,6 +228,7 @@ export default function GameDetailsScreen() {
             )}
           </View>
 
+          {/* Carrossel: Miniaturas */}
           <View style={styles.thumbnailRowContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnailScroll}>
               {screenshots.map((shot) => (
@@ -239,9 +241,50 @@ export default function GameDetailsScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
 
-        {/* LADO DIREITO: Informações */}
+          {/* SEÇÃO DE TAGS DENTRO DA COLUNA DO CARROSSEL */}
+          <View style={styles.tagsSection}>
+            <View style={styles.tagsHeader}>
+              <Text style={styles.tagsTitle}>Tags da Comunidade</Text>
+              <TouchableOpacity style={styles.manageTagsBtn} onPress={() => setModalTagsVisible(true)}>
+                <Text style={styles.manageTagsText}>+ Gerenciar Tags</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.tagsWrapper}>
+              {gameTags.length === 0 ? (
+                <Text style={styles.noReviewsText}>Nenhuma tag associada a este jogo.</Text>
+              ) : (
+                gameTags.map(gt => {
+                  const nomeDaTag = gt.tag_details?.name || 'Tag';
+                  const isRevealed = revealedSpoilers.includes(gt.id);
+                  
+                  if (gt.is_spoiler && !isRevealed) {
+                    return (
+                      <TouchableOpacity key={gt.id} style={styles.tagSpoilerHidden} onPress={() => toggleSpoiler(gt.id)}>
+                        <Text style={styles.tagSpoilerTextHidden}>[ SPOILER - TOQUE PARA LER ]</Text>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  return (
+                    <View key={gt.id} style={[styles.tagNormal, gt.is_primary && styles.tagPrimary]}>
+                      <Text style={[styles.tagNormalText, gt.is_primary && styles.tagPrimaryText]}>
+                        {nomeDaTag}
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          </View>
+          {/* FIM DA SEÇÃO DE TAGS */}
+
+        </View>
+        {/* --- FIM DO LADO ESQUERDO --- */}
+
+
+        {/* --- LADO DIREITO: Informações --- */}
         <View style={[styles.infoColumn, isLargeScreen && { flex: 1 }]}>
           {game.cover_image ? (
             <Image source={{ uri: game.cover_image }} style={styles.coverImage} resizeMode="cover" />
@@ -259,43 +302,7 @@ export default function GameDetailsScreen() {
             <Text style={styles.detailRow}><Text style={styles.detailLabel}>Consoles:</Text> {renderList(game.consoles)}</Text>
           </View>
         </View>
-      </View>
 
-      {/* --- SEÇÃO DE TAGS (NOVO) --- */}
-      <View style={styles.tagsSection}>
-        <View style={styles.tagsHeader}>
-          <Text style={styles.tagsTitle}>Tags da Comunidade</Text>
-          <TouchableOpacity style={styles.manageTagsBtn} onPress={() => setModalTagsVisible(true)}>
-            <Text style={styles.manageTagsText}>+ Gerenciar Tags</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.tagsWrapper}>
-          {gameTags.length === 0 ? (
-            <Text style={styles.noReviewsText}>Nenhuma tag associada a este jogo.</Text>
-          ) : (
-            gameTags.map(gt => {
-              const nomeDaTag = gt.tag_details?.name || 'Tag';
-              const isRevealed = revealedSpoilers.includes(gt.id);
-              
-              if (gt.is_spoiler && !isRevealed) {
-                return (
-                  <TouchableOpacity key={gt.id} style={styles.tagSpoilerHidden} onPress={() => toggleSpoiler(gt.id)}>
-                    <Text style={styles.tagSpoilerTextHidden}>[ SPOILER - TOQUE PARA LER ]</Text>
-                  </TouchableOpacity>
-                );
-              }
-
-              return (
-                <View key={gt.id} style={[styles.tagNormal, gt.is_primary && styles.tagPrimary]}>
-                  <Text style={[styles.tagNormalText, gt.is_primary && styles.tagPrimaryText]}>
-                    {nomeDaTag}
-                  </Text>
-                </View>
-              );
-            })
-          )}
-        </View>
       </View>
 
       {/* SEÇÃO DE REVIEWS */}
@@ -347,8 +354,8 @@ export default function GameDetailsScreen() {
             <Text style={styles.modalSubtitle}>Adicionar Nova Tag</Text>
             <View style={styles.pickerContainerModal}>
               <Picker selectedValue={selectedTagToAdd} onValueChange={setSelectedTagToAdd} style={styles.pickerTextModal}>
-                <Picker.Item label="Selecione uma Tag..." value="" />
-                {todasAsTags.map(t => <Picker.Item key={t.id} label={t.name} value={t.id} />)}
+                <Picker.Item label="Selecione uma Tag..." value="" color="#000000" />
+                {todasAsTags.map(t => <Picker.Item key={t.id} label={t.name} value={t.id} color="#000000" />)}
               </Picker>
             </View>
 
