@@ -6,6 +6,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import GameDetailsScreen from '../screens/GameDetailsScreen';
+import AdminTagScreen from '../screens/AdminTagScreen';
 
 export type DrawerParamList = {
   Games: undefined;
@@ -14,6 +15,7 @@ export type DrawerParamList = {
   Register: undefined;
   Profile: undefined;
   GameDetails: { gameId: number };
+  AdminTags: undefined;
 };
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -60,6 +62,11 @@ const DrawerNavigator = () => {
       name="GameDetails" 
       component={GameDetailsScreen} 
       options={{ title: 'Detalhes do Jogo', drawerItemStyle: { display: 'none' } }} 
+    />
+    <Drawer.Screen 
+      name="AdminTags" 
+      component={AdminTagScreen} 
+      options={{ title: 'Criar Tags Base' }} 
     />
     </Drawer.Navigator>  
   );
